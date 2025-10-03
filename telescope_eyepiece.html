@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Eyepiece Chart</title>
+  <script src="https://cdn.plot.ly/plotly-2.30.0.min.js"></script>
+  <style>
+    body {
+      font-family: sans-serif;
+      margin: 0;
+      padding: 2em;
+      display: flex;
+      flex-direction: column;
+      align-items: center; /* centers controls and plot */
+    }
+    #controls, #advanced {
+      margin-bottom: 1em;
+      text-align: center;
+    }
+    label { margin-right: 1em; }
+    #plot {
+      width: 100%;
+      max-width: 900px;  /* cap width for big screens */
+      aspect-ratio: 4 / 3;  /* keep consistent shape */
+    }
+    details summary { cursor: pointer; font-weight: bold; margin-top: 1em; }
+    details label { display: inline-block; margin: 0.3em 1em 0.3em 0; }
+  </style>
+</head>
+<body>
+  <h2>Eyepiece TFOV + Exit Pupil Chart</h2>
+
+  <div id="controls">
+    <label>
+      Telescope Focal Length (mm): <input type="number" id="scopeFL" value="660" min="360" max="4000" step="10">
+    </label>
+    <label>
+      Aperture (mm): <input type="number" id="aperture" value="102" min="40" max="500" step="2">
+    </label>
+  </div>
+
+  <details>
+    <summary>Advanced Settings</summary>
+    <div id="advanced">
+      <label>
+        X min: <input type="number" id="xMin" value="5" step="1">
+      </label>
+      <label>
+        X max: <input type="number" id="xMax" value="50" step="1">
+      </label>
+      <label>
+        Y min: <input type="number" id="yMin" value="40" step="1">
+      </label>
+      <label>
+        Y max: <input type="number" id="yMax" value="120" step="1">
+      </label>
+      <br>
+      <label>
+        TFOV spacing (°): <input type="number" id="tfovStep" value="0.5" step="0.1">
+      </label>
+      <label>
+        Exit pupil spacing (mm): <input type="number" id="epStep" value="1" step="0.5">
+      </label>
+    </div>
+  </details>
+
+  <div id="plot"></div>
+
+<script>
+function computeAndPlot() {
+  const scopeFL = parseFloat(document.getElementById("scopeFL").value);
+  const aperture = parseFloat(document.getElementById("aperture").value);
+  const fRatio = scopeFL / aperture;
+
+  // Advanced settings
+  const X_MIN = parseFloat(document.getElementById("xMin").value);
+  const X_MAX = parseFloat(document.getElementById("xMax").value);
+  const Y_MIN = parseFloat(document.getElementById("yMin").value);
+  const Y_MAX = parseFloat(document.getElementById("yMax").value);
+  const tfovStep = parseFloat(document.getElementById("tfovStep").value);
+  const epStep   = parseFloat(document.getElementById("epStep").value);
+
+  const X_POINTS = 200, Y_POINTS = 200;
+  const focalLengths = Array.from({length:X_POINTS}, (_,i)=>X_MIN + i*((X_MAX - X_MIN)/(X_POINTS-1)));
+  const afovs        = Array.from({length:Y_POINTS}, (_,i)=>Y_MIN + i*((Y_MAX - Y_MIN)/(Y_POINTS-1)));
+  const nx = focalLengths.length, ny = afovs.length;
+
+  const catM  = Array.from({length:ny}, ()=>Array(nx));
+  const tfovM = Array.from({length:ny}, ()=>Array(nx));
+  const epM   = Array.from({length:ny}, ()=>Array(nx));
+  const cdM   = Array.from({length:ny}, ()=>Array(nx));
+
+  const barrelLimits = [27, 46];
+  const pbiMax = 7;
+
+  for (let j = 0; j < ny; j++) {
+    const afov = afovs[j];
+    for (let i = 0; i < nx; i++) {
+      const fl = focalLengths[i];
+      const fs = (afov/57.3) * fl;
+      const tf = (fs / scopeFL) * 57.3;
+      const ep = fl / fRatio;
+      const mag = scopeFL / fl;
+      const raw = ep * ep;
+      const pbi = Math.log10(raw + 1) / Math.log10((pbiMax**2) + 1);
+
+      let cat = 0; if (fs > barrelLimits[0]) cat = 1; if (fs > barrelLimits[1]) cat = 2;
+
+      catM[j][i]  = cat;
+      tfovM[j][i] = tf;
+      epM[j][i]   = ep;
+      cdM[j][i]   = [mag, tf, fs, ep, pbi];
+    }
+  }
+
+  const heatmap = {
+    type: "heatmap",
+    x: focalLengths,
+    y: afovs,
+    z: catM,
+    customdata: cdM,
+    colorscale: [
+      [0,'rgba(166,206,227,0.4)'],
+      [0.5,'rgba(31,120,180,0.4)'],
+      [1,'rgba(178,223,138,0.4)']
+    ],
+    showscale: false,
+    hovertemplate:
+      "Eyepiece FL: %{x:.1f} mm<br>"+
+      "AFOV: %{y:.1f}°<br><br>"+
+      "Magnification: %{customdata[0]:.1f}×<br>"+
+      "TFOV: %{customdata[1]:.2f}°<br>"+
+      "Field Stop: %{customdata[2]:.1f} mm<br>"+
+      "Exit Pupil: %{customdata[3]:.2f} mm<br>"+
+      "PBI: %{customdata[4]:.2f}<extra></extra>"
+  };
+
+  const tfovContour = {
+    type: "contour",
+    name: "True FOV (°)",
+    x: focalLengths,
+    y: afovs,
+    z: tfovM,
+    contours: {start:0.5, end:10, size:tfovStep, coloring:"none", showlabels:true},
+    line: {color:"black", width:1},
+    showscale:false,
+    hoverinfo:"skip"
+  };
+
+  const exitContour = {
+    type: "contour",
+    name: "Exit Pupil (mm)",
+    x: focalLengths,
+    y: afovs,
+    z: epM,
+    contours: {start:1, end:7, size:epStep, coloring:"none", showlabels:true},
+    line: {dash:"dash", width:1, color:"red"},
+    showscale:false,
+    hoverinfo:"skip"
+  };
+
+  const layout = {
+    title:`TFOV + Exit Pupil (Scope FL=${scopeFL}, Aperture=${aperture}, f/${fRatio.toFixed(1)})`,
+    xaxis: {title:"Eyepiece Focal Length (mm)", range:[X_MIN, X_MAX], fixedrange:true},
+    yaxis: {title:"Apparent FOV (°)", range:[Y_MIN, Y_MAX], fixedrange:true},
+    dragmode: false,
+    margin: {l:60, r:20, t:50, b:60} // keep padding around plot
+  };
+
+  Plotly.react("plot", [heatmap, tfovContour, exitContour], layout, {responsive:true});
+}
+
+document.querySelectorAll("#scopeFL,#aperture,#xMin,#xMax,#yMin,#yMax,#tfovStep,#epStep")
+  .forEach(el => el.addEventListener("input", computeAndPlot));
+
+computeAndPlot();
+</script>
+</body>
+</html>
