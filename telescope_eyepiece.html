@@ -3,68 +3,254 @@
 <head>
   <meta charset="UTF-8">
   <title>Eyepiece Chart</title>
-  <script src="https://cdn.plot.ly/plotly-2.30.0.min.js"></script>
+  <script src="https://cdn.plot.ly/plotly-2.35.3.min.js" charset="utf-8"></script>
   <style>
+    :root {
+      --card-width: 900px;
+      --card-bg: #fff;
+      --card-border: 1px solid #ddd;
+      --card-radius: 8px;
+      --card-shadow: 0 2px 6px rgba(0,0,0,0.05);
+      --accent-color: #0078d7;
+    }
+
     body {
-      font-family: sans-serif;
+      font-family: "Segoe UI", Roboto, sans-serif;
       margin: 0;
       padding: 2em;
+      background: #f7f9fb;
+      color: #222;
       display: flex;
       flex-direction: column;
-      align-items: center; /* centers controls and plot */
+      align-items: center;
     }
-    #controls, #advanced {
+
+    h2 {
       margin-bottom: 1em;
       text-align: center;
+      color: #2c3e50;
     }
-    label { margin-right: 1em; }
+
+    .card {
+      background: var(--card-bg);
+      border: var(--card-border);
+      border-radius: var(--card-radius);
+      box-shadow: var(--card-shadow);
+      padding: 1.2em 1.5em;
+      margin-bottom: 1.2em;
+      text-align: center;
+      width: 100%;
+      max-width: var(--card-width);
+    }
+
+    #controls,
+    #advanced,
+    #guide,
     #plot {
       width: 100%;
-      max-width: 900px;  /* cap width for big screens */
-      aspect-ratio: 4 / 3;  /* keep consistent shape */
+      max-width: var(--card-width);
     }
-    details summary { cursor: pointer; font-weight: bold; margin-top: 1em; }
-    details label { display: inline-block; margin: 0.3em 1em 0.3em 0; }
+
+    label {
+      display: inline-block;
+      margin: 0.5em 1em;
+      font-size: 0.95em;
+    }
+
+    input[type="number"] {
+      width: 5em;
+      padding: 0.3em;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      text-align: right;
+      transition: border-color 0.2s;
+    }
+
+    input[type="number"]:focus {
+      border-color: var(--accent-color);
+      outline: none;
+    }
+
+    details {
+      width: 100%;
+      max-width: var(--card-width);
+      margin-bottom: 1em;
+    }
+
+    details summary {
+      cursor: pointer;
+      font-weight: 600;
+      color: var(--accent-color);
+      list-style: none;
+      padding: 0.5em 0.5em;
+      margin-bottom: 0.3em;
+    }
+
+    details summary::marker {
+      display: none;
+    }
+
+    details summary::before {
+      content: "▸";
+      color: var(--accent-color);
+      display: inline-block;
+      margin-right: 0.4em;
+      transition: transform 0.2s ease;
+    }
+
+    details[open] summary::before {
+      transform: rotate(90deg);
+    }
+
+    #plot {
+      background: var(--card-bg);
+      border-radius: var(--card-radius);
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+      padding: 0.5em;
+      aspect-ratio: 4 / 3;
+    }
+
+    #guide h3 {
+      margin-top: 0;
+      color: #2c3e50;
+    }
+
+    #guide ul {
+      padding-left: 1.2em;
+      text-align: left;
+    }
+
+    #guide li {
+      margin-bottom: 0.5em;
+    }
+
+    @media (max-width: 600px) {
+      label { display: block; margin: 0.4em 0; }
+      input[type="number"] { width: 6em; }
+    }
+
+	#controls,
+	#plot,
+	#guide,
+	.card,
+	details {
+	  box-sizing: border-box;
+	  width: 100%;
+	  max-width: var(--card-width);
+	  margin-left: auto;
+	  margin-right: auto;
+	}
+
+	details > div {
+	  padding-left: 0;
+	  padding-right: 0;
+	}
+
+	details summary {
+	  margin: 0;
+	  padding: 0.5em 0;
+	}
+
+	details {
+	  margin-bottom: 0.3em; 
+	}
+
+	details:not([open]) {
+	  margin-bottom: 0.1em; 
+	}
+
+	details[open] {
+	  margin-bottom: 1em; 
+	}
+
+	details summary {
+	  padding: 0.4em 0; 
+	  margin: 0;
+	}
+
+	#plot {
+	  background: var(--card-bg);
+	  border-radius: var(--card-radius);
+	  box-shadow: var(--card-shadow);
+	  padding: 0.1em;
+	  aspect-ratio: 4 / 3;
+	  width: 100%;
+	  max-width: var(--card-width);
+	  box-sizing: border-box;
+	  overflow: hidden; 
+	}
+
+	#plot .js-plotly-plot,
+	#plot .plot-container,
+	#plot .svg-container {
+	  width: 100% !important;
+	  max-width: 100% !important;
+	  margin: 0 auto !important;
+	  box-sizing: border-box;
+	}
+
+	footer {
+	  text-align: center;
+	  font-size: 0.9em;
+	  color: #777;
+	}
+
   </style>
+
 </head>
 <body>
-  <h2>Eyepiece TFOV + Exit Pupil Chart</h2>
+  <h2>Telescope Eyepiece Contour Plot</h2>
 
-  <div id="controls">
+  <div id="controls" class="card">
     <label>
-      Telescope Focal Length (mm): <input type="number" id="scopeFL" value="660" min="360" max="4000" step="10">
+      Aperture (mm): <input type="number" id="aperture" value="102" min="10" max="2000">
     </label>
     <label>
-      Aperture (mm): <input type="number" id="aperture" value="102" min="40" max="500" step="2">
+      Telescope Focal Length (mm): <input type="number" id="scopeFL" value="663" min="200" max="10000" step="10">
     </label>
+
+    <details>
+      <summary>Advanced Settings</summary>
+      <div id="advanced">
+        <label>X min: <input type="number" id="xMin" value="5" step="1"></label>
+        <label>X max: <input type="number" id="xMax" value="50" step="1"></label>
+        <label>Y min: <input type="number" id="yMin" value="40" step="1"></label>
+        <label>Y max: <input type="number" id="yMax" value="120" step="1"></label>
+        <br>
+        <label>TFOV spacing (°): <input type="number" id="tfovStep" value="0.5" step="0.1"></label>
+        <label>Exit pupil spacing (mm): <input type="number" id="epStep" value="1" step="0.5"></label>
+		<br>
+		<label>Exit pupil min (mm): <input type="number" id="epMin" value="1" step="0.5"></label>
+		<label>Exit pupil max (mm): <input type="number" id="epMax" value="10" step="0.5"></label>
+
+      </div>
+    </details>
   </div>
 
-  <details>
-    <summary>Advanced Settings</summary>
-    <div id="advanced">
-      <label>
-        X min: <input type="number" id="xMin" value="5" step="1">
-      </label>
-      <label>
-        X max: <input type="number" id="xMax" value="50" step="1">
-      </label>
-      <label>
-        Y min: <input type="number" id="yMin" value="40" step="1">
-      </label>
-      <label>
-        Y max: <input type="number" id="yMax" value="120" step="1">
-      </label>
-      <br>
-      <label>
-        TFOV spacing (°): <input type="number" id="tfovStep" value="0.5" step="0.1">
-      </label>
-      <label>
-        Exit pupil spacing (mm): <input type="number" id="epStep" value="1" step="0.5">
-      </label>
-    </div>
-  </details>
+  <div id="plot" class="card"></div>
 
-  <div id="plot"></div>
+  <div id="guide" class="card">
+    <h3>Usage Notes</h3>
+    <ul>
+      <li>Hover over any point on the graph to see exact calculations for magnification, TFOV, field stop, and exit pupil.</li>
+      <li>Use the <b>Advanced Settings</b> panel to adjust axes and contour spacing.</li>
+      <li>When choosing eyepieces, aim for:
+        <ul>
+          <li>Exit pupil between ~0.5 mm (planetary) and 7 mm (wide-field). For suburban viewing, 2mm to 4mm offers a balance of obejct brightness and contrast without excess light pollution skyglow.</li>
+          <li>TFOV should be appropriate for the object you wish to frame, e.g. 1º to 2º for the Orion Nebula.</li>
+		  <li>People often space eyepiece focal lengths by a factor of ~1.4x when building sets.</li>
+        </ul>
+      </li>
+	  <li> Example workflow to select an eyepiece:
+		  <ol>
+			  <li>Figure out an appropriate TFOV for your object (e.g., 1.5º for Orion).</li>
+			  <li>Follow the contour line for your desired TFOV to choose an AFOV that suits your preferences. Then, check that the required barrel size for this TFOV fits your telescope’s focuser (indicated by the plot shading).</li>
+			  <li>Look at the corresponding eyepiece focal length and check that it falls within your desired exit pupil size range.</li>
+		  </ol>
+	  </li>
+	  <li>Reverse the above workflow to evaluate which eyepieces work best for a given telescope.</li>
+    </ul>
+  </div>
 
 <script>
 function computeAndPlot() {
@@ -72,13 +258,17 @@ function computeAndPlot() {
   const aperture = parseFloat(document.getElementById("aperture").value);
   const fRatio = scopeFL / aperture;
 
-  // Advanced settings
   const X_MIN = parseFloat(document.getElementById("xMin").value);
   const X_MAX = parseFloat(document.getElementById("xMax").value);
   const Y_MIN = parseFloat(document.getElementById("yMin").value);
   const Y_MAX = parseFloat(document.getElementById("yMax").value);
-  const tfovStep = parseFloat(document.getElementById("tfovStep").value);
-  const epStep   = parseFloat(document.getElementById("epStep").value);
+  let tfovStep = parseFloat(document.getElementById("tfovStep").value);
+  let epStep   = parseFloat(document.getElementById("epStep").value);
+  const epMin  = parseFloat(document.getElementById("epMin").value);
+  const epMax  = parseFloat(document.getElementById("epMax").value);
+
+  if (epStep <= 0) epStep = 0.1;
+  if (tfovStep <= 0) tfovStep = 0.1;
 
   const X_POINTS = 200, Y_POINTS = 200;
   const focalLengths = Array.from({length:X_POINTS}, (_,i)=>X_MIN + i*((X_MAX - X_MIN)/(X_POINTS-1)));
@@ -91,7 +281,12 @@ function computeAndPlot() {
   const cdM   = Array.from({length:ny}, ()=>Array(nx));
 
   const barrelLimits = [27, 46];
-  const pbiMax = 7;
+  const barrelColors = [
+    'rgba(166,206,227,0.3)',
+    'rgba(31,120,180,0.3)',
+    'rgba(178,223,138,0.3)'
+  ];
+  const barrelNames = ['1.25" Barrel', '2" Barrel', '3"+ Barrel'];
 
   for (let j = 0; j < ny; j++) {
     const afov = afovs[j];
@@ -101,79 +296,130 @@ function computeAndPlot() {
       const tf = (fs / scopeFL) * 57.3;
       const ep = fl / fRatio;
       const mag = scopeFL / fl;
-      const raw = ep * ep;
-      const pbi = Math.log10(raw + 1) / Math.log10((pbiMax**2) + 1);
-
       let cat = 0; if (fs > barrelLimits[0]) cat = 1; if (fs > barrelLimits[1]) cat = 2;
-
-      catM[j][i]  = cat;
-      tfovM[j][i] = tf;
-      epM[j][i]   = ep;
-      cdM[j][i]   = [mag, tf, fs, ep, pbi];
+      catM[j][i] = cat; tfovM[j][i] = tf; epM[j][i] = ep;
+      cdM[j][i] = [mag, tf, fs, ep];
     }
   }
 
-  const heatmap = {
+  const barrelTraces = barrelColors.map((color, idx) => ({
     type: "heatmap",
+    name: barrelNames[idx],
+    x: focalLengths, y: afovs,
+    z: catM.map(row => row.map(v => (v === idx ? 1 : NaN))),
+    colorscale: [[0, color], [1, color]],
+    showscale: false, hoverinfo: "none", showlegend: true
+  }));
+
+  const fsM = Array.from({ length: ny }, () => Array(nx));
+  for (let j = 0; j < ny; j++) {
+    const afov = afovs[j];
+    for (let i = 0; i < nx; i++) {
+      const fl = focalLengths[i];
+      fsM[j][i] = (afov / 57.3) * fl;
+    }
+  }
+
+  const barrelContour = {
+    type: "contour",
+    name: "Barrel Boundaries",
     x: focalLengths,
     y: afovs,
-    z: catM,
-    customdata: cdM,
-    colorscale: [
-      [0,'rgba(166,206,227,0.4)'],
-      [0.5,'rgba(31,120,180,0.4)'],
-      [1,'rgba(178,223,138,0.4)']
-    ],
+    z: fsM,
+    contours: {
+      start: barrelLimits[0],
+      end: barrelLimits[1],
+      size: barrelLimits[1] - barrelLimits[0],
+      coloring: "none",
+      showlines: true
+    },
+    line: {
+      color: "rgba(188,215,233,1)",
+		width: 4
+    },
     showscale: false,
+    hoverinfo: "skip",
+	showlegend: false	
+  };
+
+  const hoverLayer = {
+    type: "heatmap",
+    name: "Hover Info",
+    x: focalLengths, y: afovs, z: catM, customdata: cdM,
+    opacity: 0, showscale: false,
     hovertemplate:
-      "Eyepiece FL: %{x:.1f} mm<br>"+
-      "AFOV: %{y:.1f}°<br><br>"+
-      "Magnification: %{customdata[0]:.1f}×<br>"+
-      "TFOV: %{customdata[1]:.2f}°<br>"+
-      "Field Stop: %{customdata[2]:.1f} mm<br>"+
-      "Exit Pupil: %{customdata[3]:.2f} mm<br>"+
-      "PBI: %{customdata[4]:.2f}<extra></extra>"
+      "<b>Eyepiece FL:</b> %{x:.1f} mm<br>" +
+      "<b>AFOV:</b> %{y:.1f}°<br><br>" +
+      "<b>Magnification:</b> %{customdata[0]:.1f}×<br>" +
+      "<b>True FOV:</b> %{customdata[1]:.2f}°<br>" +
+      "<b>Field Stop:</b> %{customdata[2]:.1f} mm<br>" +
+      "<b>Exit Pupil:</b> %{customdata[3]:.2f} mm<br><extra></extra>",
+    hoverlabel: { bgcolor: "white", font: { color: "black" } }
   };
 
   const tfovContour = {
-    type: "contour",
-    name: "True FOV (°)",
-    x: focalLengths,
-    y: afovs,
-    z: tfovM,
-    contours: {start:0.5, end:10, size:tfovStep, coloring:"none", showlabels:true},
-    line: {color:"black", width:1},
-    showscale:false,
-    hoverinfo:"skip"
+    type: "contour", name: "True FOV (°)",
+    x: focalLengths, y: afovs, z: tfovM,
+    contours: {start:0, end:20, size:tfovStep, coloring:"none", showlabels:true},
+    line: {color:"black", width:1}, showscale:false, hoverinfo: "skip"
   };
 
   const exitContour = {
-    type: "contour",
-    name: "Exit Pupil (mm)",
-    x: focalLengths,
-    y: afovs,
-    z: epM,
-    contours: {start:1, end:7, size:epStep, coloring:"none", showlabels:true},
-    line: {dash:"dash", width:1, color:"red"},
-    showscale:false,
-    hoverinfo:"skip"
+    type: "contour", name: "Exit Pupil (mm)",
+    x: focalLengths, y: afovs, z: epM,
+    contours: { start: epMin, end: epMax, size: epStep, coloring: "none", showlabels: false },
+    line: { dash: "dash", width: 1, color: "red" },
+    showscale: false,
+    hoverinfo: "skip"
   };
+
+  const epLevels = [];
+  for (let ep = epMin; ep <= epMax; ep += epStep) epLevels.push(+ep.toFixed(2));
+
+  const epX = epLevels.map(ep => ep * fRatio).filter(x => x >= X_MIN && x <= X_MAX);
+
+  const annotations = epX.map((x, i) => ({
+    x: (x - X_MIN) / (X_MAX - X_MIN),
+    y: .008,                         
+    xref: "paper",
+    yref: "paper",
+    text: `${epLevels[i]}`,
+    showarrow: false,
+    font: { color: "red", size: 11 },
+    xanchor: "center",
+    yanchor: "top"
+  }));
 
   const layout = {
-    title:`TFOV + Exit Pupil (Scope FL=${scopeFL}, Aperture=${aperture}, f/${fRatio.toFixed(1)})`,
-    xaxis: {title:"Eyepiece Focal Length (mm)", range:[X_MIN, X_MAX], fixedrange:true},
-    yaxis: {title:"Apparent FOV (°)", range:[Y_MIN, Y_MAX], fixedrange:true},
+    title: {
+      text: `Eyepiece Contours (Aperture=${aperture}, Scope FL=${scopeFL}, f/${fRatio.toFixed(1)})`,
+      font: { size: 18 }
+    },
+    xaxis: { title: "Eyepiece Focal Length (mm)", range: [X_MIN, X_MAX], fixedrange: true },
+    yaxis: { title: "Apparent FOV (°)", range: [Y_MIN, Y_MAX], fixedrange: true },
     dragmode: false,
-    margin: {l:60, r:20, t:50, b:60} // keep padding around plot
+    margin: { l: 80, r: 40, t: 100, b: 110 },
+    legend: { orientation: "h", yanchor: "bottom", y: 1, xanchor: "center", x: 0.5 },
+    annotations: annotations
   };
 
-  Plotly.react("plot", [heatmap, tfovContour, exitContour], layout, {responsive:true});
+  Plotly.react("plot", [
+    ...barrelTraces,
+    barrelContour,
+    hoverLayer,
+    tfovContour,
+    exitContour
+  ], layout, {responsive:true});
+
 }
 
-document.querySelectorAll("#scopeFL,#aperture,#xMin,#xMax,#yMin,#yMax,#tfovStep,#epStep")
+document.querySelectorAll("#scopeFL,#aperture,#xMin,#xMax,#yMin,#yMax,#tfovStep,#epStep,#epMin,#epMax")
   .forEach(el => el.addEventListener("input", computeAndPlot));
 
 computeAndPlot();
 </script>
+<footer>
+  <p>Created by <strong>Ivan Liongson</strong></p>
+</footer>
 </body>
 </html>
