@@ -2,18 +2,54 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Ivan Liongson</title>
   <style>
-    body { max-width: 900px; margin: auto; font-family: Arial, sans-serif; line-height: 1.5; }
+    body {
+      max-width: 900px;
+      margin: auto;
+      padding: 0 16px;
+      font-family: Arial, sans-serif;
+      line-height: 1.5;
+    }
     h1 { margin-bottom: 0; }
     a { color: #0645AD; text-decoration: none; }
     a:hover { text-decoration: underline; }
-    img { border-radius: 6px; }
-    .header { display: flex; align-items: center; margin-top: 40px; }
-    .header img { width: 160px; margin-right: 30px; }
+    img { border-radius: 6px; max-width: 100%; height: auto; }
+    
+    .header {
+      display: flex;
+      align-items: center;
+      margin-top: 40px;
+      flex-wrap: wrap;
+    }
+    .header img {
+      width: 160px;
+      margin-right: 30px;
+    }
+    .header div {
+      flex: 1;
+      min-width: 200px;
+    }
+
     .section { margin-top: 40px; }
     .pub { margin-bottom: 10px; }
-    .footer { margin-top: 50px; font-size: 0.9em; color: #686868; }
+    .footer { margin-top: 50px; font-size: 0.9em; color: #686868; text-align: center; }
+
+    @media (max-width: 600px) {
+      .header {
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+      }
+      .header img {
+        margin: 0 0 16px 0;
+        width: 120px;
+      }
+      body {
+        font-size: 16px;
+      }
+    }
   </style>
 </head>
 
@@ -54,9 +90,8 @@
   <div class="section">
     <h2>Projects</h2>
     <ul>
+      <li><a href="https://searchworks.stanford.edu/view/yp461md3013">Honors Thesis</a> — A Predictive Model of Human Transcriptional Activators and Repressors (Stanford Biology Honors).</li>
       <li><a href="https://hikakuapp.xyz">Hikaku App</a> — Japanese/Mandarin kanji/hanzi dictionary with reading-mapping tools.</li>
-      <!-- <li><a href="https://github.com/yourgnnrepo">GNN Portfolio Project</a> — Graph neural networks applied to gene regulatory networks.</li> -->
-      <li><!-- <a href="honors_thesis.pdf">Honors Thesis</a> -->Honors Thesis — Deep learning modeling of transcription factors (Stanford Biology Honors).</li>
     </ul>
   </div>
 
