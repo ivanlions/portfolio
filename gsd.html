@@ -124,55 +124,81 @@ Debug type:
   font-size:12px;
 "></pre>
 
+<hr>
+
+<details>
+<summary>
+Good Sleep Day Calendar
+</summary>
+
+<label>
+Year:
+<select id="yearSelect"></select>
+</label>
+
+<table>
+<thead>
+<tr>
+<th>Month</th>
+<th>Event Dates</th>
+</tr>
+</thead>
+<tbody id="gsdYearTable"></tbody>
+</table>
+</details>
+
 <script>
 let BASE_GSD = {};
 let loaded = false;
 
 
 // ---------- Date helpers ----------
-function parseLocalDate(str) {
-  const [y,m,d] = str.split("-").map(Number);
-  return new Date(y, m-1, d);
+function parseLocalDate(str){
+  const [y,m,d]=str.split("-").map(Number);
+  return new Date(y,m-1,d);
 }
 
-function formatLocalDate(d) {
-  return d.getFullYear() + "-" +
-    String(d.getMonth()+1).padStart(2,'0') + "-" +
+function formatLocalDate(d){
+  return d.getFullYear()+"-"+
+    String(d.getMonth()+1).padStart(2,'0')+"-"+
     String(d.getDate()).padStart(2,'0');
+}
+
+function monthName(m){
+  return ["Jan","Feb","Mar","Apr","May","Jun",
+          "Jul","Aug","Sep","Oct","Nov","Dec"][m];
 }
 
 
 // ---------- Load calendar ----------
 fetch("misc/gsd_calendar.json")
-  .then(r => r.json())
-  .then(data => {
-    BASE_GSD = data;
-    loaded = true;
-    update();
-  });
+.then(r=>r.json())
+.then(data=>{
+  BASE_GSD=data;
+  ALL_EVENTS.push(...buildEvents());
+  initYearDropdown();
+  updateYearTable();
+  loaded=true;
+  update();
+});
 
 
 // ---------- Build calendar ----------
-function buildCalendar(startDate, months, incenseMode) {
-  const cal = {};
-  const end = new Date(startDate);
-  end.setMonth(end.getMonth() + months);
+function buildCalendar(startDate,months,incenseMode){
+  const cal={};
+  const end=new Date(startDate);
+  end.setMonth(end.getMonth()+months);
 
-  for (const [dateStr, baseMult] of Object.entries(BASE_GSD)) {
-    const d = parseLocalDate(dateStr);
-    if (d < startDate || d > end) continue;
+  for(const [dateStr,baseMult] of Object.entries(BASE_GSD)){
+    const d=parseLocalDate(dateStr);
+    if(d<startDate||d>end) continue;
 
-    let mult = baseMult;
+    let mult=baseMult;
+    if(incenseMode==="middle"&&baseMult===3) mult=6;
+    if(incenseMode==="all") mult=baseMult*2;
 
-    if (incenseMode === "middle" && baseMult === 3)
-      mult = 6;
-
-    if (incenseMode === "all")
-      mult = baseMult * 2;
-
-    cal[dateStr] = mult;
+    cal[dateStr]=mult;
   }
-
   return cal;
 }
 
@@ -181,12 +207,12 @@ function buildCalendar(startDate, months, incenseMode) {
 function simulate(
   target,startDate,incenseMode,whale,
   bonusN,bonusGSDOnly,collectDebug=false
-) {
+){
 
-  const gsd = buildCalendar(startDate,24,incenseMode);
+  const gsd=buildCalendar(startDate,24,incenseMode);
 
   let total=0,sleeps=0,count4=0,count6=0;
-  const bonusFactor = 1+0.14*bonusN;
+  const bonusFactor=1+0.14*bonusN;
   let debugLog=[];
   let d=new Date(startDate);
 
@@ -199,7 +225,7 @@ function simulate(
     if(baseMult===6) count6++;
 
     let whaleApplied=false;
-    if(whale && baseMult===1){
+    if(whale&&baseMult===1){
       baseMult=2;
       whaleApplied=true;
     }
@@ -207,7 +233,7 @@ function simulate(
     let finalMult=baseMult;
     let bonusApplied=false;
 
-    if(bonusN>0 && (!bonusGSDOnly || baseMult>1)){
+    if(bonusN>0&&(!bonusGSDOnly||baseMult>1)){
       finalMult=baseMult*bonusFactor;
       bonusApplied=true;
     }
@@ -231,7 +257,7 @@ function simulate(
 }
 
 
-// ---------- Unified update ----------
+// ---------- Main table update ----------
 function update(){
 
   if(!loaded) return;
@@ -252,7 +278,6 @@ function update(){
   const modes=["none","middle","all"];
   results.innerHTML="";
 
-  // ---------- table ----------
   for(const mode of modes){
 
     const normal=simulate(target,startDate,mode,false,bonusN,bonusGSDOnly);
@@ -280,14 +305,12 @@ function update(){
       </tr>`;
   }
 
-
   // ---------- debug ----------
-  debugControls.style.display = showWork ? "block" : "none";
-  debugBox.style.display = showWork ? "block" : "none";
-  debugBox.textContent = "";
+  debugControls.style.display=showWork?"block":"none";
+  debugBox.style.display=showWork?"block":"none";
+  debugBox.textContent="";
 
   if(showWork){
-
     const dbgMode=debugMode.value;
     const dbgWhale=debugWhale.value==="whale";
 
@@ -300,6 +323,69 @@ function update(){
       `${dbgMode}, ${dbgWhale?"whale":"normal"}\n\n`
       +dbg.debugLog.join("\n");
   }
+}
+
+
+// =====================================================
+// ======== GOOD SLEEP DAY YEAR TABLE ==================
+// =====================================================
+
+const ALL_EVENTS=[];
+
+function buildEvents(){
+  const dates=Object.keys(BASE_GSD).sort();
+  const events=[];
+
+  for(let i=0;i<dates.length;i++){
+    if(BASE_GSD[dates[i]]===3){
+
+      const mid=parseLocalDate(dates[i]);
+      const prev=formatLocalDate(new Date(mid.getFullYear(),mid.getMonth(),mid.getDate()-1));
+      const next=formatLocalDate(new Date(mid.getFullYear(),mid.getMonth(),mid.getDate()+1));
+
+      if(BASE_GSD[prev]===2&&BASE_GSD[next]===2){
+        events.push({
+          mid,
+          start:parseLocalDate(prev),
+          end:parseLocalDate(next)
+        });
+      }
+    }
+  }
+  return events;
+}
+
+
+function initYearDropdown(){
+  const years=new Set(
+    ALL_EVENTS.map(e=>e.mid.getFullYear())
+  );
+
+  yearSelect.innerHTML=
+    [...years].sort().map(y=>
+      `<option value="${y}">${y}</option>`
+    ).join("");
+
+  yearSelect.value=new Date().getFullYear();
+}
+
+
+function updateYearTable(){
+
+  const y=+yearSelect.value;
+
+  const rows=ALL_EVENTS
+    .filter(e=>e.mid.getFullYear()===y)
+    .map(e=>`
+      <tr>
+        <td>${monthName(e.mid.getMonth())}</td>
+        <td>${formatLocalDate(e.start)} – ${formatLocalDate(e.end)}</td>
+
+      </tr>`
+    );
+
+  gsdYearTable.innerHTML=
+    rows.join("")||"<tr><td colspan=3>No data</td></tr>";
 }
 
 
@@ -320,14 +406,19 @@ const debugWhale=document.getElementById("debugWhale");
 const results=document.getElementById("results");
 const debugBox=document.getElementById("debugBox");
 
+const yearSelect=document.getElementById("yearSelect");
+const gsdYearTable=document.getElementById("gsdYearTable");
+
 [
  targetInput,startInput,showGSDInput,showEndInput,
  showWorkInput,bonusNInput,bonusGSDOnlyInput,
  debugMode,debugWhale
 ].forEach(el=>el.addEventListener("input",update));
 
-startInput.value=formatLocalDate(new Date());
+yearSelect.addEventListener("input",updateYearTable);
 
+// Default date
+startInput.value=formatLocalDate(new Date());
 </script>
 </body>
 </html>
