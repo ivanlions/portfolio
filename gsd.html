@@ -141,6 +141,7 @@ Year:
 <tr>
 <th>Month</th>
 <th>Event Dates</th>
+<th>Full Moon DP</th>
 </tr>
 </thead>
 <tbody id="gsdYearTable"></tbody>
@@ -167,6 +168,21 @@ function formatLocalDate(d){
 function monthName(m){
   return ["Jan","Feb","Mar","Apr","May","Jun",
           "Jul","Aug","Sep","Oct","Nov","Dec"][m];
+}
+
+function weekdayName(d){
+  return ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"][d.getDay()];
+}
+
+function fullMoonDPMultiplier(eventIndex,d){
+  if(eventIndex<3) return 2;
+
+  switch(d.getDay()){
+    case 1: return 4;
+    case 2: return 3;
+    case 3: return 2.5;
+    default: return 2;
+  }
 }
 
 
@@ -369,23 +385,23 @@ function initYearDropdown(){
   yearSelect.value=new Date().getFullYear();
 }
 
-
 function updateYearTable(){
 
   const y=+yearSelect.value;
 
   const rows=ALL_EVENTS
-    .filter(e=>e.mid.getFullYear()===y)
-    .map(e=>`
+    .map((e,index)=>({e,index}))
+    .filter(({e})=>e.mid.getFullYear()===y)
+    .map(({e,index})=>`
       <tr>
         <td>${monthName(e.mid.getMonth())}</td>
         <td>${formatLocalDate(e.start)} – ${formatLocalDate(e.end)}</td>
+        <td>${weekdayName(e.mid)} ×${fullMoonDPMultiplier(index,e.mid)}</td>
+      </tr>
+    `);
 
-      </tr>`
-    );
-
-  gsdYearTable.innerHTML=
-    rows.join("")||"<tr><td colspan=3>No data</td></tr>";
+  gsdYearTable.innerHTML =
+    rows.join("") || "<tr><td colspan='3'>No data</td></tr>";
 }
 
 
