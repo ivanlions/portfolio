@@ -95,6 +95,22 @@ Debug type:
 </select>
 </label>
 
+<label>
+<input id="debugActualExp" type="checkbox">
+Show actual EXP in debug
+</label>
+
+<div id="natureControls" style="display:none; margin-left:20px;">
+<label>
+Nature:
+<select id="debugNature">
+<option value="1">Neutral, 1×</option>
+<option value="1.18">EXP Up, 1.18×</option>
+<option value="0.82">EXP Down, 0.82×</option>
+</select>
+</label>
+</div>
+
 </div>
 
 
@@ -222,13 +238,18 @@ function buildCalendar(startDate,months,incenseMode){
 // ---------- Simulation ----------
 function simulate(
   target,startDate,incenseMode,whale,
-  bonusN,bonusGSDOnly,collectDebug=false
+  bonusN,bonusGSDOnly,collectDebug=false,
+  showActualExp=false,natureMult=1
 ){
 
   const gsd=buildCalendar(startDate,24,incenseMode);
 
   let total=0,sleeps=0,count4=0,count6=0;
+  let actualExpTotal=0;
+
   const bonusFactor=1+0.14*bonusN;
+  const sleepScoreBaseExp=100;
+
   let debugLog=[];
   let d=new Date(startDate);
 
@@ -254,22 +275,34 @@ function simulate(
       bonusApplied=true;
     }
 
+    const actualExpGain=finalMult*sleepScoreBaseExp*natureMult;
+    actualExpTotal+=actualExpGain;
+
     total+=finalMult;
     sleeps++;
 
     if(collectDebug){
-      debugLog.push(
+      let line =
         `${key} | base=${baseMult}`
         +(whaleApplied?" (whale)":"")
         +(bonusApplied?` ×${bonusFactor.toFixed(2)}`:"")
-        +` → +${finalMult.toFixed(2)} (total=${total.toFixed(2)})`
-      );
+        +` → +${finalMult.toFixed(2)} multiplier units`
+        +` (total=${total.toFixed(2)})`;
+
+      if(showActualExp){
+        line +=
+          ` | actual EXP: ${finalMult.toFixed(2)} × 100 × ${natureMult}`
+          +` = +${actualExpGain.toFixed(2)}`
+          +` (actual total=${actualExpTotal.toFixed(2)})`;
+      }
+
+      debugLog.push(line);
     }
 
     d.setDate(d.getDate()+1);
   }
 
-  return {sleeps,count4,count6,endDate:new Date(d),debugLog};
+  return {sleeps,count4,count6,endDate:new Date(d),debugLog,actualExpTotal};
 }
 
 
@@ -326,17 +359,24 @@ function update(){
   debugBox.style.display=showWork?"block":"none";
   debugBox.textContent="";
 
+  const showActualExp=debugActualExpInput.checked;
+  natureControls.style.display=(showWork&&showActualExp)?"block":"none";
+
   if(showWork){
     const dbgMode=debugMode.value;
     const dbgWhale=debugWhale.value==="whale";
+    const natureMult=+debugNature.value;
 
     const dbg=simulate(
       target,startDate,dbgMode,dbgWhale,
-      bonusN,bonusGSDOnly,true
+      bonusN,bonusGSDOnly,true,
+      showActualExp,natureMult
     );
 
     debugBox.textContent=
-      `${dbgMode}, ${dbgWhale?"whale":"normal"}\n\n`
+      `${dbgMode}, ${dbgWhale?"whale":"normal"}`
+      +(showActualExp?`, nature ×${natureMult}`:"")
+      +`\n\n`
       +dbg.debugLog.join("\n");
   }
 }
@@ -419,6 +459,10 @@ const debugControls=document.getElementById("debugControls");
 const debugMode=document.getElementById("debugMode");
 const debugWhale=document.getElementById("debugWhale");
 
+const debugActualExpInput=document.getElementById("debugActualExp");
+const natureControls=document.getElementById("natureControls");
+const debugNature=document.getElementById("debugNature");
+
 const results=document.getElementById("results");
 const debugBox=document.getElementById("debugBox");
 
@@ -428,7 +472,7 @@ const gsdYearTable=document.getElementById("gsdYearTable");
 [
  targetInput,startInput,showGSDInput,showEndInput,
  showWorkInput,bonusNInput,bonusGSDOnlyInput,
- debugMode,debugWhale
+ debugMode,debugWhale,debugActualExpInput,debugNature
 ].forEach(el=>el.addEventListener("input",update));
 
 yearSelect.addEventListener("input",updateYearTable);
